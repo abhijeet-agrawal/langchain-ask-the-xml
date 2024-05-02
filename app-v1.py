@@ -1,14 +1,26 @@
 import streamlit as st
+import PyPDF2
 from langchain.llms import OpenAI
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.chains import RetrievalQA
 
+def read_pdf(file):
+    pdfReader = PyPDF2.PdfFileReader(file)
+    text = ""
+    for page in range(pdfReader.numPages):
+        text += pdfReader.getPage(page).extractText()
+    return text
+
 def generate_response(uploaded_file, openai_api_key, query_text):
     # Load document if file is uploaded
     if uploaded_file is not None:
-        documents = [uploaded_file.read().decode()]
+        if uploaded_file.type == 'application/pdf':
+            document = read_pdf(uploaded_file)
+        else:
+            document = uploaded_file.read().decode()
+        documents = [document]
     # Split documents into chunks
     text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
     texts = text_splitter.create_documents(documents)
@@ -27,9 +39,9 @@ st.set_page_config(page_title='🦜🔗 Ask the Doc App')
 st.title('🦜🔗 Ask the Doc App')
 
 # File upload
-uploaded_file = st.file_uploader('Upload an article', type='txt')
+uploaded_file = st.file_uploader('Upload an article', type=['txt', 'pdf'])
 # Query text
-query_text = st.text_input('Enter your question:', placeholder = 'Please provide a short summary.', disabled=not uploaded_file)
+query_text = st.text_input('Enter your question:', placeholder='Please provide a short summary.', disabled=not uploaded_file)
 
 # Form input and query
 result = []
